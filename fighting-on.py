@@ -14,6 +14,7 @@ class fighter():
         self.__wallet = 10
         self.__statsPurchased = 0
         self.__bankedMoney = 0
+        self.__currentDifficulty = 0
 
     def getMaxHealth(self):
         return self.__maxHealth
@@ -84,6 +85,19 @@ class fighter():
         self.__health += amount
         print(f"{self._name} Has {self.__health} Left\n")
 
+    def changeDifficulty(self, amount):
+        if amount == 1:
+            self.__currentDifficulty += amount
+        else:
+            self.__currentDifficulty = 0 if self.__currentDifficulty <= 0 else self.__currentDifficulty - amount
+
+        toIncrease = random.choices(["health", "defense", "attack", "critChance", "critMultiplier", "speed"], k=self.__currentDifficulty)
+        backupStatsPurchased = self.__statsPurchased
+        for stat in toIncrease:
+            self.__statsPurchased = 0
+            self.buyStat(stat)
+        self.__statsPurchased = backupStatsPurchased
+
     def buyStat(self, stat):
         shop = {
             "health" : 10 * self.__statsPurchased,
@@ -111,6 +125,22 @@ class fighter():
             self.makePurchase(shop[stat])
         else:
             print(f"{self._name} Does Not Have Enough Money To Buy That\n{self._name} Needs {shop[stat]} But Has {self.__wallet}")
+
+    def printStat(self):
+        print(f"\n{self._name} Stats:")
+        stats = self.getStats()
+        for stat in stats:
+            print(f"{stat} : {stats[stat]}")
+
+    def displayBattleStats(self, enemy):
+        selfStats = self.getStats()
+        enemyStats = enemy.getStats()
+        spacing = ["              ", "              ", "               ", "      ", "  ", "                "]
+        print(f"\n{self._name} Vs. Level {self.__currentDifficulty} {enemy._name}\n-----------------------------------------------")
+        # for s1, s2 in selfStats, enemyStats:
+        for s1, s2, space in zip(selfStats, enemyStats, spacing):
+            print(f"{s1}:{selfStats[s1]} {space} {s2}:{enemyStats[s2]}")
+        print("-----------------------------------------------")
 
     def battle(self, enemy):
         selfDied = False
@@ -190,15 +220,24 @@ class fighter():
             self.earnMoney(moneyEarned)
             print(f"You Killed The Enemy! You Found ${moneyEarned}. You Have ${self.__wallet} Total")
 
-def pickAFight():
-    return fighter("NPC")
+def pickAFight(amount):
+    enemy = fighter("NPC")
+    match amount:
+        case 1:
+            return enemy
+        case 2:
+            enemy.changeDifficulty(1)
+        case 3:
+            enemy.changeDifficulty(-1)
+    return enemy
 
 def createFighter():
     return fighter(input("Enter Your Fighters Name"))
 
 def playGame(playerOne):
+    canFight = "Fight" if playerOne.getHealth() > 0 else "Cannot Fight. You Are Dead"
     possibleActions = {
-        1: "Fight",
+        1: canFight,
         2: "Buy Stats",
         3: "Check Stats",
         4: "Rest"
@@ -207,12 +246,30 @@ def playGame(playerOne):
         print(f"{action} : {possibleActions[action]}")
 
     actionChoice = int(input("Enter The Number Of What You Wish To Do: "))
+    print("\n")
+
     match actionChoice:
         case 1:
-            playerTwo = pickAFight()
-            
-            while(playerOne.getHealth() > 0 and playerTwo.getHealth() > 0):
-                playerOne.battle(playerTwo)
+            if canFight == "Fight":
+                whoToFight = {
+                    1: "Continue Fighting The Same Difficulty Enemy",
+                    2: "Find A More Difficult Enemy",
+                    3: "Find An Easier Enemy"
+                }
+                for fightOption in whoToFight:
+                    print(f"{fightOption} : {whoToFight[fightOption]}")
+                fightChoice = input(f"Who Do You Wish To Pick A Fight With: ")
+
+                if fightChoice.isnumeric() and int(fightChoice) in whoToFight:
+                    playerTwo = pickAFight(int(fightChoice))
+                else:
+                    print("Improper Choice Of Enemy. Fighting A Similar Difficulty Enemy By Default")
+                    playerTwo = pickAFight(1)
+
+                playerOne.displayBattleStats(playerTwo)
+                print("\n")
+                while(playerOne.getHealth() > 0 and playerTwo.getHealth() > 0):
+                    playerOne.battle(playerTwo)
 
         case 2:
             purchasePrice = playerOne.getNumberOfStatsPurchased() * 10
@@ -235,23 +292,14 @@ def playGame(playerOne):
                 print("Improper Input. You Have Been Kicked Out Of The Store. Try Again: ")
         
         case 3:
-            print(f"\nPlayerOne Stats:")
-            stats = playerOne.getStats()
-            for stat in stats:
-                print(f"{stat} : {stats[stat]}")
+            playerOne.printStat()
         
         case 4:
             playerOne.rest()
             print(f"You Have Rested And Returned To Full Health.")
 
-    print("----------- End Of Round-----------")
+    print("----------- End Of Round-----------\n")
     playGame(playerOne)
-            # "health" : 10 * self.__statsPurchased,
-            # "defense" : 10 * self.__statsPurchased,
-            # "attack" : 10 * self.__statsPurchased,
-            # "critChance" : 10 * self.__statsPurchased,
-            # "critMultiplier" : 10 * self.__statsPurchased,
-            # "speed" : 10 * self.__sta
 
 def main():
     os.system("cls")
